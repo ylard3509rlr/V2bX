@@ -33,7 +33,7 @@ func (h *Hysteria2) AddUsers(p *vCore.AddUsersParams) (added int, err error) {
 		go func(u panel.UserInfo) {
 			defer wg.Done()
 			h.Auth.mutex.Lock()
-			h.Auth.usersMap[u.Uuid] = u.Id
+			h.Auth.usersMap[u.Password()] = u.Id
 			h.Auth.mutex.Unlock()
 		}(user)
 	}
@@ -45,16 +45,17 @@ func (h *Hysteria2) DelUsers(users []panel.UserInfo, tag string, _ *panel.NodeIn
 	var wg sync.WaitGroup
 	for _, user := range users {
 		wg.Add(1)
+		password := user.Password()
 		if v, ok := h.Hy2nodes[tag].TrafficLogger.(*HookServer).Counter.Load(tag); ok {
 			c := v.(*counter.TrafficCounter)
-			c.Delete(user.Uuid)
+			c.Delete(password)
 		}
-		go func(u panel.UserInfo) {
+		go func(pwd string) {
 			defer wg.Done()
 			h.Auth.mutex.Lock()
-			delete(h.Auth.usersMap, u.Uuid)
+			delete(h.Auth.usersMap, pwd)
 			h.Auth.mutex.Unlock()
-		}(user)
+		}(password)
 	}
 	wg.Wait()
 	return nil

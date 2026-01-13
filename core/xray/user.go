@@ -9,6 +9,7 @@ import (
 	"github.com/InazumaV/V2bX/common/format"
 	vCore "github.com/InazumaV/V2bX/core"
 	"github.com/InazumaV/V2bX/core/xray/app/dispatcher"
+	log "github.com/sirupsen/logrus"
 	"github.com/xtls/xray-core/common/protocol"
 	"github.com/xtls/xray-core/proxy"
 )
@@ -38,7 +39,7 @@ func (c *Xray) DelUsers(users []panel.UserInfo, tag string, _ *panel.NodeInfo) e
 	c.users.mapLock.Lock()
 	defer c.users.mapLock.Unlock()
 	for i := range users {
-		user = format.UserTag(tag, users[i].Uuid)
+		user = format.UserTag(tag, users[i].Password())
 		err = userManager.RemoveUser(context.Background(), user)
 		if err != nil {
 			return err
@@ -96,8 +97,12 @@ func (x *Xray) GetUserTrafficSlice(tag string, reset bool) ([]panel.UserTraffic,
 func (c *Xray) AddUsers(p *vCore.AddUsersParams) (added int, err error) {
 	c.users.mapLock.Lock()
 	defer c.users.mapLock.Unlock()
+	log.Infof("AddUsers: adding %d users for node type: %s", len(p.Users), p.NodeInfo.Type)
 	for i := range p.Users {
-		c.users.uidMap[format.UserTag(p.Tag, p.Users[i].Uuid)] = p.Users[i].Id
+		userTag := format.UserTag(p.Tag, p.Users[i].Password())
+		log.Infof("AddUsers: mapping user id=%d, password='%s', tag='%s'",
+			p.Users[i].Id, p.Users[i].Password(), userTag)
+		c.users.uidMap[userTag] = p.Users[i].Id
 	}
 	var users []*protocol.User
 	switch p.NodeInfo.Type {

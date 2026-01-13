@@ -52,7 +52,8 @@ func AddLimiter(tag string, l *conf.LimitConfig, users []panel.UserInfo, aliveLi
 	}
 	uuidmap := make(map[string]int)
 	for i := range users {
-		uuidmap[users[i].Uuid] = users[i].Id
+		password := users[i].Password()
+		uuidmap[password] = users[i].Id
 		userLimit := &UserLimitInfo{}
 		userLimit.UID = users[i].Id
 		if users[i].SpeedLimit != 0 {
@@ -62,7 +63,7 @@ func AddLimiter(tag string, l *conf.LimitConfig, users []panel.UserInfo, aliveLi
 			userLimit.DeviceLimit = users[i].DeviceLimit
 		}
 		userLimit.OverLimit = false
-		info.UserLimitInfo.Store(format.UserTag(tag, users[i].Uuid), userLimit)
+		info.UserLimitInfo.Store(format.UserTag(tag, password), userLimit)
 	}
 	info.UUIDtoUID = uuidmap
 	limitLock.Lock()
@@ -89,13 +90,15 @@ func DeleteLimiter(tag string) {
 
 func (l *Limiter) UpdateUser(tag string, added []panel.UserInfo, deleted []panel.UserInfo) {
 	for i := range deleted {
-		l.UserLimitInfo.Delete(format.UserTag(tag, deleted[i].Uuid))
-		l.UserOnlineIP.Delete(format.UserTag(tag, deleted[i].Uuid))
-		l.SpeedLimiter.Delete(format.UserTag(tag, deleted[i].Uuid))
-		delete(l.UUIDtoUID, deleted[i].Uuid)
+		password := deleted[i].Password()
+		l.UserLimitInfo.Delete(format.UserTag(tag, password))
+		l.UserOnlineIP.Delete(format.UserTag(tag, password))
+		l.SpeedLimiter.Delete(format.UserTag(tag, password))
+		delete(l.UUIDtoUID, password)
 		delete(l.AliveList, deleted[i].Id)
 	}
 	for i := range added {
+		password := added[i].Password()
 		userLimit := &UserLimitInfo{
 			UID: added[i].Id,
 		}
@@ -107,8 +110,8 @@ func (l *Limiter) UpdateUser(tag string, added []panel.UserInfo, deleted []panel
 			userLimit.DeviceLimit = added[i].DeviceLimit
 		}
 		userLimit.OverLimit = false
-		l.UserLimitInfo.Store(format.UserTag(tag, added[i].Uuid), userLimit)
-		l.UUIDtoUID[added[i].Uuid] = added[i].Id
+		l.UserLimitInfo.Store(format.UserTag(tag, password), userLimit)
+		l.UUIDtoUID[password] = added[i].Id
 	}
 }
 

@@ -26,32 +26,34 @@ func (b *Sing) AddUsers(p *core.AddUsersParams) (added int, err error) {
 	b.users.mapLock.Lock()
 	defer b.users.mapLock.Unlock()
 	for i := range p.Users {
-		b.users.uidMap[p.Users[i].Uuid] = p.Users[i].Id
+		b.users.uidMap[p.Users[i].Password()] = p.Users[i].Id
 	}
 	switch p.NodeInfo.Type {
 	case "vless":
 		us := make([]option.VLESSUser, len(p.Users))
 		for i := range p.Users {
+			password := p.Users[i].Password()
 			us[i] = option.VLESSUser{
-				Name: p.Users[i].Uuid,
+				Name: password,
 				Flow: p.VAllss.Flow,
-				UUID: p.Users[i].Uuid,
+				UUID: password,
 			}
 		}
 		err = in.(*vless.Inbound).AddUsers(us)
 	case "vmess":
 		us := make([]option.VMessUser, len(p.Users))
 		for i := range p.Users {
+			password := p.Users[i].Password()
 			us[i] = option.VMessUser{
-				Name: p.Users[i].Uuid,
-				UUID: p.Users[i].Uuid,
+				Name: password,
+				UUID: password,
 			}
 		}
 		err = in.(*vmess.Inbound).AddUsers(us)
 	case "shadowsocks":
 		us := make([]option.ShadowsocksUser, len(p.Users))
 		for i := range p.Users {
-			var password = p.Users[i].Uuid
+			var password = p.Users[i].Password()
 			switch p.Shadowsocks.Cipher {
 			case "2022-blake3-aes-128-gcm":
 				password = base64.StdEncoding.EncodeToString([]byte(password[:16]))
@@ -59,7 +61,7 @@ func (b *Sing) AddUsers(p *core.AddUsersParams) (added int, err error) {
 				password = base64.StdEncoding.EncodeToString([]byte(password[:32]))
 			}
 			us[i] = option.ShadowsocksUser{
-				Name:     p.Users[i].Uuid,
+				Name:     p.Users[i].Password(),
 				Password: password,
 			}
 		}
@@ -67,9 +69,10 @@ func (b *Sing) AddUsers(p *core.AddUsersParams) (added int, err error) {
 	case "trojan":
 		us := make([]option.TrojanUser, len(p.Users))
 		for i := range p.Users {
+			password := p.Users[i].Password()
 			us[i] = option.TrojanUser{
-				Name:     p.Users[i].Uuid,
-				Password: p.Users[i].Uuid,
+				Name:     password,
+				Password: password,
 			}
 		}
 		err = in.(*trojan.Inbound).AddUsers(us)
@@ -77,10 +80,11 @@ func (b *Sing) AddUsers(p *core.AddUsersParams) (added int, err error) {
 		us := make([]option.TUICUser, len(p.Users))
 		id := make([]int, len(p.Users))
 		for i := range p.Users {
+			password := p.Users[i].Password()
 			us[i] = option.TUICUser{
-				Name:     p.Users[i].Uuid,
-				UUID:     p.Users[i].Uuid,
-				Password: p.Users[i].Uuid,
+				Name:     password,
+				UUID:     password,
+				Password: password,
 			}
 			id[i] = p.Users[i].Id
 		}
@@ -88,9 +92,10 @@ func (b *Sing) AddUsers(p *core.AddUsersParams) (added int, err error) {
 	case "hysteria":
 		us := make([]option.HysteriaUser, len(p.Users))
 		for i := range p.Users {
+			password := p.Users[i].Password()
 			us[i] = option.HysteriaUser{
-				Name:       p.Users[i].Uuid,
-				AuthString: p.Users[i].Uuid,
+				Name:       password,
+				AuthString: password,
 			}
 		}
 		err = in.(*hysteria.Inbound).AddUsers(us)
@@ -98,9 +103,10 @@ func (b *Sing) AddUsers(p *core.AddUsersParams) (added int, err error) {
 		us := make([]option.Hysteria2User, len(p.Users))
 		id := make([]int, len(p.Users))
 		for i := range p.Users {
+			password := p.Users[i].Password()
 			us[i] = option.Hysteria2User{
-				Name:     p.Users[i].Uuid,
-				Password: p.Users[i].Uuid,
+				Name:     password,
+				Password: password,
 			}
 			id[i] = p.Users[i].Id
 		}
@@ -108,9 +114,10 @@ func (b *Sing) AddUsers(p *core.AddUsersParams) (added int, err error) {
 	case "anytls":
 		us := make([]option.AnyTLSUser, len(p.Users))
 		for i := range p.Users {
+			password := p.Users[i].Password()
 			us[i] = option.AnyTLSUser{
-				Name:     p.Users[i].Uuid,
-				Password: p.Users[i].Uuid,
+				Name:     password,
+				Password: password,
 			}
 		}
 		err = in.(*anytls.Inbound).AddUsers(us)
@@ -203,12 +210,13 @@ func (b *Sing) DelUsers(users []panel.UserInfo, tag string, info *panel.NodeInfo
 	b.users.mapLock.Lock()
 	defer b.users.mapLock.Unlock()
 	for i := range users {
+		password := users[i].Password()
 		if v, ok := b.hookServer.counter.Load(tag); ok {
 			c := v.(*counter.TrafficCounter)
-			c.Delete(users[i].Uuid)
+			c.Delete(password)
 		}
-		delete(b.users.uidMap, users[i].Uuid)
-		uuids[i] = users[i].Uuid
+		delete(b.users.uidMap, password)
+		uuids[i] = password
 	}
 	err := del.DelUsers(uuids)
 	if err != nil {

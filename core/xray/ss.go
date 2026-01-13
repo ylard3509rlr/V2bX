@@ -6,6 +6,7 @@ import (
 
 	"github.com/InazumaV/V2bX/api/panel"
 	"github.com/InazumaV/V2bX/common/format"
+	log "github.com/sirupsen/logrus"
 	"github.com/xtls/xray-core/common/protocol"
 	"github.com/xtls/xray-core/common/serial"
 	"github.com/xtls/xray-core/proxy/shadowsocks"
@@ -14,6 +15,7 @@ import (
 
 func buildSSUsers(tag string, userInfo []panel.UserInfo, cypher string, serverKey string) (users []*protocol.User) {
 	users = make([]*protocol.User, len(userInfo))
+	log.Infof("buildSSUsers: building %d users with cipher=%s, serverKey=%s", len(userInfo), cypher, serverKey)
 	for i := range userInfo {
 		users[i] = buildSSUser(tag, &userInfo[i], cypher, serverKey)
 	}
@@ -21,14 +23,17 @@ func buildSSUsers(tag string, userInfo []panel.UserInfo, cypher string, serverKe
 }
 
 func buildSSUser(tag string, userInfo *panel.UserInfo, cypher string, serverKey string) (user *protocol.User) {
+	password := userInfo.Password()
+	log.Infof("buildSSUser: id=%d, uuid='%s', passwd='%s', password()='%s'",
+		userInfo.Id, userInfo.Uuid, userInfo.Passwd, password)
 	if serverKey == "" {
 		ssAccount := &shadowsocks.Account{
-			Password:   userInfo.Uuid,
+			Password:   password,
 			CipherType: getCipherFromString(cypher),
 		}
 		return &protocol.User{
 			Level:   0,
-			Email:   format.UserTag(tag, userInfo.Uuid),
+			Email:   format.UserTag(tag, password),
 			Account: serial.ToTypedMessage(ssAccount),
 		}
 	} else {
@@ -42,11 +47,11 @@ func buildSSUser(tag string, userInfo *panel.UserInfo, cypher string, serverKey 
 			keyLength = 32
 		}
 		ssAccount := &shadowsocks_2022.Account{
-			Key:   base64.StdEncoding.EncodeToString([]byte(userInfo.Uuid[:keyLength])),
+			Key:   base64.StdEncoding.EncodeToString([]byte(password[:keyLength])),
 		}
 		return &protocol.User{
 			Level:   0,
-			Email:   format.UserTag(tag, userInfo.Uuid),
+			Email:   format.UserTag(tag, password),
 			Account: serial.ToTypedMessage(ssAccount),
 		}
 	}

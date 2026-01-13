@@ -7,6 +7,7 @@ import (
 	"encoding/json/jsontext"
 	"encoding/json/v2"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/vmihailenco/msgpack/v5"
 )
 
@@ -18,8 +19,17 @@ type OnlineUser struct {
 type UserInfo struct {
 	Id          int    `json:"id" msgpack:"id"`
 	Uuid        string `json:"uuid" msgpack:"uuid"`
+	Passwd      string `json:"passwd" msgpack:"passwd"`
 	SpeedLimit  int    `json:"speed_limit" msgpack:"speed_limit"`
 	DeviceLimit int    `json:"device_limit" msgpack:"device_limit"`
+}
+
+// Password 返回用戶密碼/UUID，優先使用 Passwd 字段（Goulian 面板），否則使用 Uuid 字段
+func (u *UserInfo) Password() string {
+	if u.Passwd != "" {
+		return u.Passwd
+	}
+	return u.Uuid
 }
 
 type UserListBody struct {
@@ -79,6 +89,8 @@ func (c *Client) GetUserList() ([]UserInfo, error) {
 			if err != nil {
 				return nil, fmt.Errorf("decode user list error: read user object: %w", err)
 			}
+			// Debug: 打印原始 JSON 數據
+			log.Infof("GetUserList: raw user json: %s", string(val))
 			var u UserInfo
 			if err := json.Unmarshal(val, &u); err != nil {
 				return nil, fmt.Errorf("decode user list error: unmarshal user error: %w", err)
@@ -87,6 +99,15 @@ func (c *Client) GetUserList() ([]UserInfo, error) {
 		}
 	}
 	c.userEtag = r.Header().Get("ETag")
+	// Debug: 打印用戶列表信息以便調試
+	if len(userlist.Users) > 0 {
+		log.Infof("GetUserList: got %d users, first user: id=%d, uuid='%s', passwd='%s', password()='%s'",
+			len(userlist.Users),
+			userlist.Users[0].Id,
+			userlist.Users[0].Uuid,
+			userlist.Users[0].Passwd,
+			userlist.Users[0].Password())
+	}
 	return userlist.Users, nil
 }
 

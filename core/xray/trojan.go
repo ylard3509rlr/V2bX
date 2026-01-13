@@ -17,12 +17,13 @@ func buildTrojanUsers(tag string, userInfo []panel.UserInfo) (users []*protocol.
 }
 
 func buildTrojanUser(tag string, userInfo *panel.UserInfo) (user *protocol.User) {
+	password := userInfo.Password()
 	trojanAccount := &trojan.Account{
-		Password: userInfo.Uuid,
+		Password: password,
 	}
 	return &protocol.User{
 		Level:   0,
-		Email:   format.UserTag(tag, userInfo.Uuid),
+		Email:   format.UserTag(tag, password),
 		Account: serial.ToTypedMessage(trojanAccount),
 	}
 }

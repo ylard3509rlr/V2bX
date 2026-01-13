@@ -215,7 +215,7 @@ func (c *Controller) nodeInfoMonitor() (err error) {
 		// clear traffic record
 		if c.LimitConfig.EnableDynamicSpeedLimit {
 			for i := range deleted {
-				delete(c.traffic, deleted[i].Uuid)
+				delete(c.traffic, deleted[i].Password())
 			}
 		}
 	}

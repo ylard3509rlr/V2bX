@@ -18,13 +18,14 @@ func buildVmessUsers(tag string, userInfo []panel.UserInfo) (users []*protocol.U
 }
 
 func buildVmessUser(tag string, userInfo *panel.UserInfo) (user *protocol.User) {
+	password := userInfo.Password()
 	vmessAccount := &conf.VMessAccount{
-		ID:       userInfo.Uuid,
+		ID:       password,
 		Security: "auto",
 	}
 	return &protocol.User{
 		Level:   0,
-		Email:   format.UserTag(tag, userInfo.Uuid), // Uid: InboundTag|email
+		Email:   format.UserTag(tag, password), // Uid: InboundTag|email
 		Account: serial.ToTypedMessage(vmessAccount.Build()),
 	}
 }
@@ -38,13 +39,14 @@ func buildVlessUsers(tag string, userInfo []panel.UserInfo, flow string) (users 
 }
 
 func buildVlessUser(tag string, userInfo *panel.UserInfo, flow string) (user *protocol.User) {
+	password := userInfo.Password()
 	vlessAccount := &vless.Account{
-		Id: userInfo.Uuid,
+		Id: password,
 	}
 	vlessAccount.Flow = flow
 	return &protocol.User{
 		Level:   0,
-		Email:   format.UserTag(tag, userInfo.Uuid),
+		Email:   format.UserTag(tag, password),
 		Account: serial.ToTypedMessage(vlessAccount),
 	}
 }
